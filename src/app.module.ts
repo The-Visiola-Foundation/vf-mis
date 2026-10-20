@@ -20,6 +20,7 @@ import { SchoolsModule } from './schools/schools.module';
 import { StatsModule } from './stats/stats.module';
 import { StudentsModule } from './students/students.module';
 import { TracksModule } from './tracks/tracks.module';
+import { ScMetricsModule } from './sc-metrics/sc-metrics.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { TracksModule } from './tracks/tracks.module';
     TracksModule,
     StatsModule,
     AcademicsModule,
+    ScMetricsModule,
   ],
   controllers: [AppController],
   providers: [
