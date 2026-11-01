@@ -20,7 +20,6 @@ import { SchoolsModule } from './schools/schools.module';
 import { StatsModule } from './stats/stats.module';
 import { StudentsModule } from './students/students.module';
 import { TracksModule } from './tracks/tracks.module';
-import { ScMetricsModule } from './sc-metrics/sc-metrics.module';
 
 @Module({
   imports: [
@@ -32,7 +31,11 @@ import { ScMetricsModule } from './sc-metrics/sc-metrics.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService): TypeOrmModuleOptions => ({
         type: 'postgres',
-        url: configService.get<string>('CONNECTION_STRING'),
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
         synchronize: true,
       }),
@@ -52,7 +55,6 @@ import { ScMetricsModule } from './sc-metrics/sc-metrics.module';
     TracksModule,
     StatsModule,
     AcademicsModule,
-    ScMetricsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -11,6 +11,9 @@ export class ScParticipation {
     @Column({ name: 'studentId', type: 'uuid', nullable: false })
     studentId!: string;
 
+    @Column({ type: "varchar", nullable: true })
+    theme?: string;
+
     @ManyToOne(() => Student, (student) => student.scParticipation, { nullable: false, onDelete: 'CASCADE' })
     @JoinColumn({ name: 'studentId' })
     student!: Student;

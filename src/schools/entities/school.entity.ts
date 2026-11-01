@@ -3,11 +3,14 @@ import { Column, Entity, PrimaryGeneratedColumn, PrimaryColumn } from "typeorm";
 
 @Entity('schools')
 export class School {
-    @PrimaryColumn('uuid')
+    @PrimaryGeneratedColumn('identity')
     id!: string;
 
     @Column({ type: 'varchar', nullable: false, unique: true })
     school!: string;
+
+    @Column({ type: 'varchar', nullable: true })
+    schoolCode?: string;
 
     @Column({ type: 'simple-enum', enum: Category })
     category!: string;

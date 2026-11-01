@@ -13,6 +13,9 @@ export class AscgParticipation {
     @Column({ name: 'schoolId', type: 'uuid', nullable: false })
     schoolId!: string;
 
+    @Column({ type: 'varchar', nullable: true })
+    class?: string;
+
     @ManyToOne(() => Student, (student) => student.ascgParticipation, { nullable: false, onDelete: 'CASCADE' })
     @JoinColumn({ name: 'studentId' })
     student!: Student;
