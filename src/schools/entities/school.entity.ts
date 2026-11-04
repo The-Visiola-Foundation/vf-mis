@@ -1,9 +1,9 @@
 import { Category, Program } from "src/common/enum";
-import { Column, Entity, PrimaryGeneratedColumn, PrimaryColumn } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity('schools')
 export class School {
-    @PrimaryGeneratedColumn('identity')
+    @PrimaryGeneratedColumn('uuid')
     id!: string;
 
     @Column({ type: 'varchar', nullable: false, unique: true })

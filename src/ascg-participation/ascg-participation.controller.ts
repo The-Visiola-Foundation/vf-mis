@@ -1,11 +1,13 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Public } from 'src/auth/decorators/public.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
 import { AscgParticipationService } from './ascg-participation.service';
 import { CreateAscgParticipationDto } from './dto/create-ascg-participation.dto';
 import { UpdateAscgParticipationDto } from './dto/update-ascg-participation.dto';
 
 @ApiTags('ASCG Participation')
+@Public()
 @Controller('ascg-participation')
 export class AscgParticipationController {
   constructor(private readonly ascgParticipationService: AscgParticipationService) {}

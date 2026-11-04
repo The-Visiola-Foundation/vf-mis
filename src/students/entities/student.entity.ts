@@ -2,7 +2,6 @@ import { AscgParticipation } from "src/ascg-participation/entities/ascg-particip
 import { AscgProfile } from "src/ascg-profile/entities/ascg-profile.entity";
 import { CbcParticipation } from "src/cbc-participation/entities/cbc-participation.entity";
 import { CbcProfile } from "src/cbc-profile/entities/cbc-profile.entity";
-import { ProgramParticipation } from "src/program-participation/entities/program-participation.entity";
 import { ScParticipation } from "src/sc-participation/entities/sc-participation.entity";
 import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany, OneToOne, PrimaryGeneratedColumn, Unique } from "typeorm";
 
@@ -33,7 +32,7 @@ export class Student {
     @Column({ type: 'varchar', nullable: false })
     country!: string;
 
-    @Column({ type: 'int', nullable: false })
+    @Column({ type: 'integer', nullable: false })
     yearJoined!: number;
 
     @OneToOne(() => AscgProfile, (profile) => profile.student)
@@ -51,20 +50,17 @@ export class Student {
     @OneToMany(() => ScParticipation, (participation) => participation.student)
     scParticipation?: ScParticipation[]
 
-    @OneToMany(() => ProgramParticipation, (participation) => participation.student)
-    programParticipation?: ProgramParticipation[]
-
     @Column({type: 'boolean', default: false})
     consent!: boolean;
 
-    @Column()
-    combo!: string;
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    combo?: string | null;
 
     //Automatically compute combo before save/update
     @BeforeInsert()
     @BeforeUpdate()
     setCombo() {
-        if (this.firstName && this.lastName) {
+        if (this.firstName && this.lastName && this.dateOfBirth) {
             const [a, b] = [this.firstName.trim().toLowerCase(), this.lastName.trim().toLowerCase()].sort();
             this.combo = `${a}-${b}-${this.dateOfBirth}`;
         }

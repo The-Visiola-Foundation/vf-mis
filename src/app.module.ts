@@ -13,7 +13,6 @@ import { AuthModule } from './auth/auth.module';
 import { AccessTokenGuard } from './auth/guards/access-token.guard';
 import { CbcParticipationModule } from './cbc-participation/cbc-participation.module';
 import { CbcProfileModule } from './cbc-profile/cbc-profile.module';
-import { ProgramParticipationModule } from './program-participation/program-participation.module';
 import { ProgramsModule } from './programs/programs.module';
 import { ScParticipationModule } from './sc-participation/sc-participation.module';
 import { SchoolsModule } from './schools/schools.module';
@@ -51,7 +50,6 @@ import { TracksModule } from './tracks/tracks.module';
     AscgParticipationModule,
     CbcParticipationModule,
     ScParticipationModule,
-    ProgramParticipationModule,
     TracksModule,
     StatsModule,
     AcademicsModule,

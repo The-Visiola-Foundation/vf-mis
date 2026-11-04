@@ -1,11 +1,13 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Public } from 'src/auth/decorators/public.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
 import { ScParticipationService } from './sc-participation.service';
 import { CreateScParticipationDto } from './dto/create-sc-participation.dto';
 import { UpdateScParticipationDto } from './dto/update-sc-participation.dto';
 
 @ApiTags('SC Participation')
+@Public()
 @Controller('sc-participation')
 export class ScParticipationController {
   constructor(private readonly scParticipationService: ScParticipationService) {}

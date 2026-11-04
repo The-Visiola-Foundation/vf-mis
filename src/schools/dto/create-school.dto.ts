@@ -5,10 +5,6 @@ import { Category, Program } from "src/common/enum";
 
 export class CreateSchoolDto {
 
-    @ApiProperty({ description: 'School identifier.', example: 'school-001' })
-    @IsString()
-    id!: string;
-
     @ApiProperty({ description: 'School name.', example: 'Green Valley School' })
     @IsString()
     school!: string;

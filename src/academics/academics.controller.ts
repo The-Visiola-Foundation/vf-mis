@@ -10,6 +10,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Public } from 'src/auth/decorators/public.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
 import { AcademicsService } from './academics.service';
 import {
@@ -25,6 +26,7 @@ import { UpdateGradeDto } from './dto/update-grade.dto';
 import { UpdatePerformanceDto } from './dto/update-performance.dto';
 
 @ApiTags('Academics')
+@Public()
 @Controller('academics')
 export class AcademicsController {
   constructor(private readonly academicsService: AcademicsService) {}

@@ -3,21 +3,21 @@ import { AcademicTerm } from '../../common/enum';
 
 @Entity()
 export class GPA {
-    @PrimaryGeneratedColumn('rowid')
+    @PrimaryGeneratedColumn('increment', { type: 'integer' })
     id!: number;
 
-    @Column({ type: 'int' })
+    @Column({ type: 'integer', nullable: false })
     year!: number;
 
-    @Column({ type: 'enum', enum: AcademicTerm })
+    @Column({ type: 'enum', enum: AcademicTerm, nullable: false })
     term!: AcademicTerm;
 
-    @Column('decimal', { precision: 5, scale: 2 })
+    @Column({ type: 'numeric', precision: 5, scale: 2, nullable: false })
     gpa!: number;
 
-    @Column({ type: 'int' })
+    @Column({ type: 'integer', nullable: false })
     numberOfRecords!: number;
 
-    @Column('decimal', { precision: 5, scale: 2 })
+    @Column({ type: 'numeric', precision: 5, scale: 2, nullable: false })
     percentage!: number;
 }

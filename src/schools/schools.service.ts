@@ -22,9 +22,14 @@ export class SchoolsService {
     if (!createSchoolDtos || createSchoolDtos.length === 0) {
       throw new BadRequestException('At least one school is required to create.');
     }
+    try {
+      const newData = createSchoolDtos.map(x => ({ school: x.school, category: x.category }))
+      const schools = this.schoolRepo.create(newData);
+      return await this.schoolRepo.save(schools);
 
-    const schools = this.schoolRepo.create(createSchoolDtos);
-    return await this.schoolRepo.save(schools);
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   async findAll(category: string) {

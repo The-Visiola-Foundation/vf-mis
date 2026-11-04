@@ -5,7 +5,6 @@ import { CreateAscgParticipationDto } from 'src/ascg-participation/dto/create-as
 import { CreateCbcParticipationDto } from 'src/cbc-participation/dto/create-cbc-participation.dto';
 import { CreateScParticipationDto } from 'src/sc-participation/dto/create-sc-participation.dto';
 import { CreateProgramDto } from 'src/programs/dto/create-program.dto';
-import { CreateProgramParticipationDto } from 'src/program-participation/dto/create-program-participation.dto';
 
 const ASCG_PROFILE_KEYS = [
   'year',
@@ -62,12 +61,6 @@ const SC_PARTICIPATION_KEYS = [
     'year'
 ] satisfies readonly (keyof CreateScParticipationDto)[]
 
-const PROGRAM_PARTICIPATION_KEYS = [
-    'programId',
-    'year'
-] satisfies readonly (keyof CreateProgramParticipationDto)[]
-
-
 function pick<T extends object, K extends keyof T>(
   object: T,
   keys: readonly K[],
@@ -105,6 +98,3 @@ export function extractScParticipation(dto: CreateStudentDto): CreateScParticipa
     return pick(dto, SC_PARTICIPATION_KEYS)
 }
 
-export function extractProgramParticipation(dto: CreateStudentDto): CreateProgramParticipationDto {
-    return pick(dto, PROGRAM_PARTICIPATION_KEYS)
-}

@@ -97,16 +97,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
             message: driverError.detail,
           });
 
-        case 'SQLITE_CONSTRAINT_UNIQUE':
-          return response.status(HttpStatus.CONFLICT).json({
-            statusCode: HttpStatus.CONFLICT,
-            message: driverError.detail,
-          });
-
         default:
           return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
             statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-            message: 'A database error occurred.',
+            message: driverError.detail ?? 'A database error occurred.',
           });
       }
     }

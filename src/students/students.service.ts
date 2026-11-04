@@ -14,7 +14,6 @@ import {
 } from './student.utils';
 import { AscgParticipation } from 'src/ascg-participation/entities/ascg-participation.entity';
 import { CbcParticipation } from 'src/cbc-participation/entities/cbc-participation.entity';
-import { ProgramParticipation } from 'src/program-participation/entities/program-participation.entity';
 import { ScParticipation } from 'src/sc-participation/entities/sc-participation.entity';
 import { AscgProfile } from 'src/ascg-profile/entities/ascg-profile.entity';
 import { CbcProfile } from 'src/cbc-profile/entities/cbc-profile.entity';
@@ -62,15 +61,14 @@ const PROGRAM_CONFIG: Record<string, ProgramConfig> = {
   },
 };
 
-/** Works for SQLite and Postgres. */
+/** Postgres unique constraint violations. */
 function isUniqueViolation(err: unknown): boolean {
   if (!(err instanceof QueryFailedError)) return false;
   const driverError = (err as any).driverError;
   return (
-    driverError?.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
-    driverError?.code === '23505' || // Postgres unique_violation
-    !!driverError?.message?.includes('UNIQUE constraint failed') ||
-    !!driverError?.message?.includes('duplicate key')
+    driverError?.code === '23505' ||
+    !!driverError?.message?.includes('duplicate key') ||
+    !!driverError?.message?.includes('unique constraint')
   );
 }
 
@@ -151,7 +149,7 @@ export class StudentsService {
     }
   }
 
-  /** Happy path: student + generic participation + program-specific rows, atomically. */
+  /** Happy path: ensure the generic participation exists before any specific participation. */
   private async createStudentWithParticipations(
     manager: EntityManager,
     input: StudentInput,
@@ -169,56 +167,70 @@ export class StudentsService {
 
     if (!programId) return student;
 
-    // Generic program participation.
-    const year = this.toValidYear(input.year ?? yearJoined, 'year');
-    await this.saveIgnoringDuplicate(manager, async (m) => {
-      await m.save(
-        m.create(ProgramParticipation, {
-          studentId: student.id,
-          programId: String(programId),
-          year,
-        } as any),
-      );
-    });
-
-    // Program-specific rows (ASCG / CBC / SC), driven by config.
     const config = PROGRAM_CONFIG[programId];
     if (config) {
-      await this.saveIgnoringDuplicate(manager, async (m) => {
-        const extracted = config.extract(input);
-        await m.save(
-          m.create(config.participation, {
-            ...extracted,
-            studentId: student.id,
-            year: this.toValidYear(extracted.year ?? yearJoined, 'year'),
-          }),
-        );
-
-        if (config.profile) {
-          await m.save(
-            m.create(config.profile, { ...input, studentId: student.id } as any),
-          );
-        }
-      });
+      await this.ensureSpecificParticipation(manager, config, student.id, input, yearJoined);
     }
 
     return student;
   }
 
-  /**
-   * Runs `work` in a nested transaction (SAVEPOINT) and ignores unique-constraint
-   * errors, so a swallowed error can't poison the outer transaction (an issue on
-   * Postgres with plain try/catch).
-   */
-  private async saveIgnoringDuplicate(
+  private async ensureSpecificParticipation(
     manager: EntityManager,
-    work: (manager: EntityManager) => Promise<void>,
+    config: ProgramConfig,
+    studentId: string,
+    input: StudentInput,
+    yearJoined: number,
   ) {
-    try {
-      await manager.transaction(work);
-    } catch (err) {
-      if (!isUniqueViolation(err)) throw err;
+    const extracted = config.extract(input);
+    const year = this.toValidYear(extracted.year ?? yearJoined, 'year');
+
+    const where: Record<string, any> = { studentId, year };
+    for (const [key, value] of Object.entries(extracted)) {
+      if (value == null) continue;
+      if (['track', 'school', 'studentId', 'year'].includes(key)) continue;
+      where[key] = value;
     }
+
+    const existing = await manager.findOne(config.participation as any, { where });
+
+    if (existing) {
+      if (config.profile) {
+        const existingProfile = await manager.findOne(config.profile as any, {
+          where: { studentId },
+        });
+
+        if (!existingProfile) {
+          await manager.save(
+            manager.create(config.profile, { ...input, studentId } as any),
+          );
+        }
+      }
+
+      return existing;
+    }
+
+    const created = await manager.save(
+      manager.create(config.participation, {
+        ...extracted,
+        studentId,
+        year,
+      }),
+    );
+
+    if (config.profile) {
+      const existingProfile = await manager.findOne(config.profile as any, {
+        where: { studentId },
+      });
+
+      if (!existingProfile) {
+        await manager.save(
+          manager.create(config.profile, { ...input, studentId } as any),
+        );
+      }
+    }
+
+    return created;
   }
 
   /** Duplicate-student path. Returns null if the existing student can't be found. */
@@ -232,6 +244,17 @@ export class StudentsService {
     });
 
     if (!student) return null;
+
+    const yearJoined = this.toValidYear(input.yearJoined, 'yearJoined');
+
+    await this.studentRepository.manager.transaction(async (manager) => {
+      if (programId) {
+        const config = PROGRAM_CONFIG[programId];
+        if (config) {
+          await this.ensureSpecificParticipation(manager, config, student.id, input, yearJoined);
+        }
+      }
+    });
 
     this.eventEmitter.emit(StudentEvents.STUDENT_CREATED, {
       ...input,
@@ -311,8 +334,7 @@ export class StudentsService {
       .leftJoinAndSelect('student.cbcProfile', 'cbcProfile')
       .leftJoinAndSelect('student.ascgParticipation', 'ascgParticipation')
       .leftJoinAndSelect('student.cbcParticipation', 'cbcParticipation')
-      .leftJoinAndSelect('student.scParticipation', 'scParticipation')
-      .leftJoinAndSelect('student.programParticipation', 'programParticipation');
+      .leftJoinAndSelect('student.scParticipation', 'scParticipation');
 
     const trimmedName = name?.trim();
     const trimmedFirstName = firstName?.trim();
@@ -364,7 +386,6 @@ export class StudentsService {
         ascgParticipation: true,
         cbcParticipation: true,
         scParticipation: true,
-        programParticipation: true,
       },
     });
   }

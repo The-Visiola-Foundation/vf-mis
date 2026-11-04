@@ -22,9 +22,9 @@ export class AscgProfileListener {
             } catch (error) {
                 if (
                     error instanceof QueryFailedError &&
-                    ((error as any).driverError?.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
-                        (error as any).driverError?.code === '23505' ||
-                        (error as any).driverError?.message?.includes('UNIQUE constraint failed'))
+                    ((error as any).driverError?.code === '23505' ||
+                        (error as any).driverError?.message?.includes('duplicate key') ||
+                        (error as any).driverError?.message?.includes('unique constraint'))
                 ) {
                     return;
                 }

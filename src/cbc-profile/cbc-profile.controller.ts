@@ -1,11 +1,13 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Public } from 'src/auth/decorators/public.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
 import { CbcProfileService } from './cbc-profile.service';
 import { CreateCbcProfileDto } from './dto/create-cbc-profile.dto';
 import { UpdateCbcProfileDto } from './dto/update-cbc-profile.dto';
 
 @ApiTags('CBC Profile')
+@Public()
 @Controller('cbc-profile')
 export class CbcProfileController {
   constructor(private readonly cbcProfileService: CbcProfileService) {}

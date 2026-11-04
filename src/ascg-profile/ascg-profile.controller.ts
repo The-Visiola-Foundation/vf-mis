@@ -1,11 +1,13 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Public } from 'src/auth/decorators/public.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
 import { AscgProfileService } from './ascg-profile.service';
 import { CreateAscgProfileDto } from './dto/create-ascg-profile.dto';
 import { UpdateAscgProfileDto } from './dto/update-ascg-profile.dto';
 
 @ApiTags('ASCG Profile')
+@Public()
 @Controller('ascg-profile')
 export class AscgProfileController {
   constructor(private readonly ascgProfileService: AscgProfileService) {}

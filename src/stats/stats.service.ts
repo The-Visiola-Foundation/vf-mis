@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AscgParticipation } from 'src/ascg-participation/entities/ascg-participation.entity';
 import { CbcParticipation } from 'src/cbc-participation/entities/cbc-participation.entity';
-import { ProgramParticipation } from 'src/program-participation/entities/program-participation.entity';
 import { ScParticipation } from 'src/sc-participation/entities/sc-participation.entity';
 import { School } from 'src/schools/entities/school.entity';
 import { Student } from 'src/students/entities/student.entity';
@@ -13,22 +12,23 @@ export class StatsService {
   constructor(
     @InjectRepository(Student) private readonly studentRepo: Repository<Student>,
     @InjectRepository(School) private readonly schoolRepo: Repository<School>,
-    @InjectRepository(ProgramParticipation) private readonly allParticipationRepo: Repository<ProgramParticipation>,
     @InjectRepository(AscgParticipation) private readonly ascgParticipationRepo: Repository<AscgParticipation>,
     @InjectRepository(ScParticipation) private readonly scParticipationRepo: Repository<ScParticipation>,
     @InjectRepository(CbcParticipation) private readonly cbcParticipationRepo: Repository<CbcParticipation>,
   ) {}
 
   async getOverview() {
-    const [students, participation, schools] = await Promise.all([
+    const [students, schools, ascg, cbc, sc] = await Promise.all([
       this.studentRepo.count(),
-      this.allParticipationRepo.count(),
       this.schoolRepo.count(),
+      this.ascgParticipationRepo.count(),
+      this.cbcParticipationRepo.count(),
+      this.scParticipationRepo.count(),
     ]);
 
     return {
       students,
-      participation,
+      participation: ascg + cbc + sc,
       schools,
     };
   }
@@ -51,31 +51,63 @@ export class StatsService {
   }
 
   /**
-   * For every year: unique students (yearJoined === year)
-   * and returning students (yearJoined !== year).
+   * For every year: unique students in that year and
+   * returning students (students whose yearJoined differs from the participation year).
    */
   async getYearlyReach() {
-    const rows = await this.allParticipationRepo
-      .createQueryBuilder('participation')
-      .innerJoin('participation.student', 'student')
-      .select('participation.year', 'year')
-      .addSelect(
-        'COUNT(DISTINCT CASE WHEN student.yearJoined = participation.year THEN student.id END)',
-        'uniqueStudents',
-      )
-      .addSelect(
-        'COUNT(DISTINCT CASE WHEN student.yearJoined <> participation.year THEN student.id END)',
-        'returningStudents',
-      )
-      .groupBy('participation.year')
-      .orderBy('participation.year', 'ASC')
-      .getRawMany();
+    const [ascgRows, cbcRows, scRows] = await Promise.all([
+      this.ascgParticipationRepo
+        .createQueryBuilder('participation')
+        .innerJoin('participation.student', 'student')
+        .select('participation.year', 'year')
+        .addSelect('COUNT(DISTINCT student.id)', 'totalStudents')
+        .addSelect(`COUNT(DISTINCT CASE WHEN student.yearJoined = participation.year THEN student.id END)`, 'newStudents')
+        .addSelect(`COUNT(DISTINCT CASE WHEN student.yearJoined <> participation.year THEN student.id END)`, 'returningStudents')
+        .groupBy('participation.year')
+        .orderBy('participation.year', 'ASC')
+        .getRawMany(),
+      this.cbcParticipationRepo
+        .createQueryBuilder('participation')
+        .innerJoin('participation.student', 'student')
+        .select('participation.year', 'year')
+        .addSelect('COUNT(DISTINCT student.id)', 'totalStudents')
+        .addSelect(`COUNT(DISTINCT CASE WHEN student.yearJoined = participation.year THEN student.id END)`, 'newStudents')
+        .addSelect(`COUNT(DISTINCT CASE WHEN student.yearJoined <> participation.year THEN student.id END)`, 'returningStudents')
+        .groupBy('participation.year')
+        .orderBy('participation.year', 'ASC')
+        .getRawMany(),
+      this.scParticipationRepo
+        .createQueryBuilder('participation')
+        .innerJoin('participation.student', 'student')
+        .select('participation.year', 'year')
+        .addSelect('COUNT(DISTINCT student.id)', 'totalStudents')
+        .addSelect(`COUNT(DISTINCT CASE WHEN student.yearJoined = participation.year THEN student.id END)`, 'newStudents')
+        .addSelect(`COUNT(DISTINCT CASE WHEN student.yearJoined <> participation.year THEN student.id END)`, 'returningStudents')
+        .groupBy('participation.year')
+        .orderBy('participation.year', 'ASC')
+        .getRawMany(),
+    ]);
 
-    return rows.map((r) => ({
-      year: Number(r.year),
-      uniqueStudents: Number(r.uniqueStudents),
-      returningStudents: Number(r.returningStudents),
-    }));
+    const byYear = new Map<number, { uniqueStudents: number; returningStudents: number }>();
+
+    for (const rows of [ascgRows, cbcRows, scRows]) {
+      for (const row of rows) {
+        const year = Number(row.year);
+        const previous = byYear.get(year) ?? { uniqueStudents: 0, returningStudents: 0 };
+
+        previous.uniqueStudents += Number(row.totalStudents ?? 0);
+        previous.returningStudents += Number(row.returningStudents ?? 0);
+        byYear.set(year, previous);
+      }
+    }
+
+    return Array.from(byYear.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([year, stats]) => ({
+        year,
+        uniqueStudents: stats.uniqueStudents,
+        returningStudents: stats.returningStudents,
+      }));
   }
 
   /**
@@ -83,23 +115,16 @@ export class StatsService {
    * returning participations (total - unique) and the first year on record.
    */
   async getProgramStats() {
-    const [ascg, cbc, sc, outreach] = await Promise.all([
+    const [ascg, cbc, sc] = await Promise.all([
       this.buildProgramStats(this.ascgParticipationRepo),
       this.buildProgramStats(this.cbcParticipationRepo),
       this.buildProgramStats(this.scParticipationRepo),
-      // Assumes outreach lives in ProgramParticipation with a `program` column.
-      // Adjust if outreach has its own entity or a different discriminator.
-      this.buildProgramStats(this.allParticipationRepo, {
-        clause: 'p.programId = :program',
-        params: { program: 'outreach' },
-      }),
     ]);
 
     return [
       { id: 'ascg', program: 'ASCG', description: 'After-school STEM Clubs for Girls', ...ascg },
       { id: 'cbc', program: 'CBC', description: 'Coding Bootcamps for Women', ...cbc },
       { id: 'sc', program: 'SC', description: 'STEM Camps', ...sc },
-      { id: 'outreach', program: 'OUTREACH', description: 'STEM Outreach', ...outreach },
     ];
   }
 

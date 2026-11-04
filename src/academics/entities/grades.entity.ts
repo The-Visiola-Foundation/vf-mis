@@ -2,33 +2,33 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class Grade {
-  @PrimaryGeneratedColumn('rowid')
+  @PrimaryGeneratedColumn('increment', { type: 'integer' })
   id!: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'integer', nullable: false })
   year!: number;
 
-  @Column()
+  @Column({ type: 'varchar', length: 255, nullable: false })
   subject!: string;
 
-  @Column()
+  @Column({ type: 'varchar', length: 255, nullable: false })
   paired!: string;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'integer', nullable: false })
   term1!: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'integer', nullable: false })
   term2!: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'integer', nullable: false })
   term3!: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'integer', nullable: false })
   improved!: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'integer', nullable: false })
   stable!: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'integer', nullable: false })
   declined!: number;
 }
