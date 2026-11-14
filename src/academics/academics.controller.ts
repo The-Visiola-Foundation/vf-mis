@@ -8,10 +8,13 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Public } from 'src/auth/decorators/public.decorator';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { UserRole } from 'src/common/user-role.enum';
 import { AcademicsService } from './academics.service';
 import {
   CreateAcademicsBatchDto,
@@ -24,14 +27,19 @@ import { UpdateAcademicsDto } from './dto/update-academics.dto';
 import { UpdateGpaDto } from './dto/update-gpa.dto';
 import { UpdateGradeDto } from './dto/update-grade.dto';
 import { UpdatePerformanceDto } from './dto/update-performance.dto';
+import { Public } from 'src/auth/decorators/public.decorator';
 
-@ApiTags('Academics')
+const STAFF = [UserRole.ADMIN, UserRole.KEY_STAFF, UserRole.PROGRAMME_STAFF];
+
 @Public()
+@ApiTags('Academics')
 @Controller('academics')
+@UseGuards(RolesGuard)
 export class AcademicsController {
-  constructor(private readonly academicsService: AcademicsService) {}
+  constructor(private readonly academicsService: AcademicsService) { }
 
-  @WriteProtected()
+  // @WriteProtected()
+  @Roles(...STAFF)
   @Post('batch')
   @ApiOperation({ summary: 'Create a batch of academic records' })
   @ApiBody({ type: CreateAcademicsBatchDto })
@@ -40,7 +48,8 @@ export class AcademicsController {
     return this.academicsService.createBatch(createAcademicsBatchDto);
   }
 
-  @WriteProtected()
+  // @WriteProtected()
+  @Roles(...STAFF)
   @Post('record')
   @ApiOperation({ summary: 'Create a single academics record' })
   @ApiBody({ type: CreateAcademicsDto })
@@ -49,7 +58,8 @@ export class AcademicsController {
     return this.academicsService.createAcademics(createAcademicsDto);
   }
 
-  @WriteProtected()
+  // @WriteProtected()
+  @Roles(...STAFF)
   @Patch('record/:id')
   @ApiOperation({ summary: 'Update an academics record' })
   @ApiParam({ name: 'id', type: Number, description: 'Academics record id' })
@@ -62,7 +72,8 @@ export class AcademicsController {
     return this.academicsService.editAcademics(id, updateAcademicsDto as any);
   }
 
-  @WriteProtected()
+  // @WriteProtected()
+  @Roles(...STAFF)
   @Delete('record/:id')
   @ApiOperation({ summary: 'Delete an academics record' })
   @ApiParam({ name: 'id', type: Number, description: 'Academics record id' })
@@ -71,7 +82,8 @@ export class AcademicsController {
     return this.academicsService.deleteAcademics(id);
   }
 
-  @WriteProtected()
+  // @WriteProtected()
+  @Roles(...STAFF)
   @Post('grade')
   @ApiOperation({ summary: 'Create a grade record' })
   @ApiBody({ type: CreateGradeDto })
@@ -80,7 +92,7 @@ export class AcademicsController {
     return this.academicsService.createGrade(createGradeDto);
   }
 
-  @WriteProtected()
+  // @WriteProtected()
   @Patch('grade/:id')
   @ApiOperation({ summary: 'Update a grade record' })
   @ApiParam({ name: 'id', type: Number, description: 'Grade record id' })
@@ -93,7 +105,7 @@ export class AcademicsController {
     return this.academicsService.editGrade(id, updateGradeDto);
   }
 
-  @WriteProtected()
+  // @WriteProtected()
   @Delete('grade/:id')
   @ApiOperation({ summary: 'Delete a grade record' })
   @ApiParam({ name: 'id', type: Number, description: 'Grade record id' })
@@ -102,7 +114,7 @@ export class AcademicsController {
     return this.academicsService.deleteGrade(id);
   }
 
-  @WriteProtected()
+  // @WriteProtected()
   @Post('performance')
   @ApiOperation({ summary: 'Create a performance record' })
   @ApiBody({ type: CreatePerformanceDto })
@@ -111,7 +123,7 @@ export class AcademicsController {
     return this.academicsService.createPerformance(createPerformanceDto);
   }
 
-  @WriteProtected()
+  // @WriteProtected()
   @Patch('performance/:id')
   @ApiOperation({ summary: 'Update a performance record' })
   @ApiParam({ name: 'id', type: Number, description: 'Performance record id' })
@@ -124,7 +136,7 @@ export class AcademicsController {
     return this.academicsService.editPerformance(id, updatePerformanceDto);
   }
 
-  @WriteProtected()
+  // @WriteProtected()
   @Delete('performance/:id')
   @ApiOperation({ summary: 'Delete a performance record' })
   @ApiParam({ name: 'id', type: Number, description: 'Performance record id' })
@@ -133,7 +145,7 @@ export class AcademicsController {
     return this.academicsService.delelePerformance(id);
   }
 
-  @WriteProtected()
+  // @WriteProtected()
   @Post('gpa')
   @ApiOperation({ summary: 'Create a GPA record' })
   @ApiBody({ type: CreateGpaDto })
@@ -142,7 +154,7 @@ export class AcademicsController {
     return this.academicsService.createGPA(createGpaDto);
   }
 
-  @WriteProtected()
+  // @WriteProtected()
   @Patch('gpa/:id')
   @ApiOperation({ summary: 'Update a GPA record' })
   @ApiParam({ name: 'id', type: Number, description: 'GPA record id' })
@@ -155,7 +167,7 @@ export class AcademicsController {
     return this.academicsService.editGPA(id, updateGpaDto as any);
   }
 
-  @WriteProtected()
+  // @WriteProtected()
   @Delete('gpa/:id')
   @ApiOperation({ summary: 'Delete a GPA record' })
   @ApiParam({ name: 'id', type: Number, description: 'GPA record id' })
@@ -164,7 +176,7 @@ export class AcademicsController {
     return this.academicsService.deleteGPA(id);
   }
 
-  @Get('by-year')
+  @Get()
   @ApiOperation({ summary: 'Fetch academic records by year' })
   @ApiParam({ name: 'year', type: Number, description: 'Academic year' })
   @ApiResponse({ status: 200, description: 'Academic data returned.' })

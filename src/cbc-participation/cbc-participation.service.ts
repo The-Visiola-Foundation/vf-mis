@@ -3,13 +3,15 @@ import { CreateCbcParticipationDto } from './dto/create-cbc-participation.dto';
 import { UpdateCbcParticipationDto } from './dto/update-cbc-participation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CbcParticipation } from './entities/cbc-participation.entity';
+import { CbcProfile } from 'src/cbc-profile/entities/cbc-profile.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
 export class CbcParticipationService {
 
   constructor(
-    @InjectRepository(CbcParticipation) private readonly participation: Repository<CbcParticipation>
+    @InjectRepository(CbcParticipation) private readonly participation: Repository<CbcParticipation>,
+    @InjectRepository(CbcProfile) private readonly profile: Repository<CbcProfile>,
   ) { }
 
   async create(createCbcParticipationDto: CreateCbcParticipationDto) {
@@ -17,7 +19,7 @@ export class CbcParticipationService {
     return await this.participation.save(part);
   }
 
-  async findAll() {
+  async findAll(year?: number) {
     return await this.participation.find();
   }
 

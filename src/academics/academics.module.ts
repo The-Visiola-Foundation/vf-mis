@@ -6,10 +6,11 @@ import { Academics } from './entities/academics.entity';
 import { GPA } from './entities/gpa.entity';
 import { Grade } from './entities/grades.entity';
 import { Performance } from './entities/performance.entity';
+import { AscgParticipation } from 'src/ascg-participation/entities/ascg-participation.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Academics, GPA, Grade, Performance])],
+  imports: [TypeOrmModule.forFeature([Academics, GPA, Grade, Performance, AscgParticipation])],
   controllers: [AcademicsController],
   providers: [AcademicsService],
 })
-export class AcademicsModule {}
+export class AcademicsModule { }

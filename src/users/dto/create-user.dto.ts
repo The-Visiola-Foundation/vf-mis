@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsString } from "class-validator";
+import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
+import { UserRole } from 'src/common/user-role.enum';
 
 export class CreateUserDto {
     @ApiProperty({ description: 'Full name of the user.', example: 'Jane Doe' })
@@ -9,6 +10,16 @@ export class CreateUserDto {
     @ApiProperty({ description: 'Email address of the user.', example: 'jane.doe@example.com' })
     @IsEmail()
     email!: string;
+
+    @ApiPropertyOptional({
+      description: 'Assigned application role.',
+      example: UserRole.PROGRAMME_STAFF,
+      enum: UserRole,
+      default: UserRole.PROGRAMME_STAFF,
+    })
+    @IsOptional()
+    @IsEnum(UserRole)
+    role?: UserRole;
 
     @ApiPropertyOptional({ description: 'Hashed password value.', example: '$2b$10$...' })
     @IsString()

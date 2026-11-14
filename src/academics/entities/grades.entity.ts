@@ -1,6 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 @Entity()
+@Unique(['year', 'subject', 'paired'])
 export class Grade {
   @PrimaryGeneratedColumn('increment', { type: 'integer' })
   id!: number;

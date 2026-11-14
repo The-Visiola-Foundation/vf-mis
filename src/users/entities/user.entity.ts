@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { UserRole } from 'src/common/user-role.enum';
 
 @Entity('user')
 export class User {
@@ -10,6 +11,14 @@ export class User {
 
   @Column({ type: 'varchar', length: 255, unique: true, nullable: false })
   email!: string;
+
+  @Column({
+    type: 'varchar',
+    length: 32,
+    nullable: false,
+    default: UserRole.PROGRAMME_STAFF,
+  })
+  role!: UserRole;
 
   @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
   microsoftId?: string;

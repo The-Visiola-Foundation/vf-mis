@@ -16,6 +16,7 @@ import { UpdateAcademicsDto } from './dto/update-academics.dto';
 import { UpdateGpaDto } from './dto/update-gpa.dto';
 import { UpdateGradeDto } from './dto/update-grade.dto';
 import { UpdatePerformanceDto } from './dto/update-performance.dto';
+import { AscgParticipation } from 'src/ascg-participation/entities/ascg-participation.entity';
 
 @Injectable()
 export class AcademicsService {
@@ -31,6 +32,10 @@ export class AcademicsService {
 
     @InjectRepository(Performance)
     private readonly performanceRepository: Repository<Performance>,
+
+    @InjectRepository(AscgParticipation)
+    private readonly ascgParticipationRepository: Repository<AscgParticipation>,
+
   ) { }
 
   async createBatch(createAcademicsBatchDto: CreateAcademicsBatchDto) {
@@ -68,11 +73,39 @@ export class AcademicsService {
     };
   }
 
-  async findByYear(year: number) {
-    if (!Number.isFinite(year)) {
-      throw new BadRequestException('Year must be a valid number.');
-    }
 
+
+  async findByYear(year: number) {
+
+    // Get ASCG participation statistics for the selected year
+    const ascgParticipation = await this.ascgParticipationRepository
+      .createQueryBuilder('participation')
+      .leftJoin('participation.student', 'student')
+      .select('COUNT(*)', 'totalParticipation')
+      .addSelect(
+        `COUNT(CASE WHEN student.yearJoined = participation.year THEN 1 END)`,
+        'uniqueParticipation',
+      )
+      .addSelect(
+        `COUNT(CASE WHEN student.yearJoined <> participation.year THEN 1 END)`,
+        'returningParticipation',
+      )
+      .where('participation.year = :year', { year })
+      .getRawOne();
+
+    const totalParticipation = Number(
+      ascgParticipation?.totalParticipation ?? 0,
+    );
+
+    const uniqueParticipation = Number(
+      ascgParticipation?.uniqueParticipation ?? 0,
+    );
+
+    const returningParticipation = Number(
+      ascgParticipation?.returningParticipation ?? 0,
+    );
+
+    // Fetch academic records for the selected year
     const [academics, gpa, grades, performance] = await Promise.all([
       this.academicsRepository.find({ where: { year } }),
       this.gpaRepository.find({ where: { year } }),
@@ -81,6 +114,7 @@ export class AcademicsService {
     ]);
 
     const summaryRow = academics[0] ?? null;
+
     const gpaTrend = [...gpa]
       .sort((a, b) => a.term.localeCompare(b.term))
       .map((item) => ({
@@ -111,19 +145,40 @@ export class AcademicsService {
         poor: item.poor,
       }));
 
-    const totalRecords = gpa.reduce((sum, record) => sum + record.numberOfRecords, 0);
+    // Calculate academic summary
+    const totalRecords = summaryRow
+      ? summaryRow.improved + summaryRow.stable + summaryRow.declined
+      : 0;
+
     const avgGpa = gpa.length
       ? gpa.reduce((sum, record) => sum + Number(record.gpa), 0) / gpa.length
       : 0;
+
+    const sortedGpa = [...gpa].sort((a, b) =>
+      a.term.localeCompare(b.term),
+    );
+
+    const netGpaChange =
+      sortedGpa.length >= 2
+        ? (
+          Number(sortedGpa[sortedGpa.length - 1].gpa) -
+          Number(sortedGpa[0].gpa)
+        ).toFixed(2)
+        : '0.00';
 
     const summary = {
       year,
       improved: summaryRow?.improved ?? 0,
       stable: summaryRow?.stable ?? 0,
       declined: summaryRow?.declined ?? 0,
-      netGpaChange: Number((avgGpa - 3.5).toFixed(2)),
+      netGpaChange,
       totalRecords,
       averageGpa: Number(avgGpa.toFixed(2)),
+
+      // ASCG participation statistics
+      totalParticipation,
+      uniqueParticipation,
+      returningParticipation,
     };
 
     return {
@@ -140,6 +195,8 @@ export class AcademicsService {
       performanceByTerm,
     };
   }
+
+
 
   async createAcademics(createAcademicsDto: CreateAcademicsDto): Promise<Academics> {
     const academics = this.academicsRepository.create(createAcademicsDto);

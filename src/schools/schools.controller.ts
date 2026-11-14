@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Public } from 'src/auth/decorators/public.decorator';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { UserRole } from 'src/common/user-role.enum';
 import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
@@ -11,13 +13,16 @@ export type SchoolsFilter = {
   category?: Category
 }
 
+const STAFF = [UserRole.ADMIN, UserRole.KEY_STAFF, UserRole.PROGRAMME_STAFF];
+
 @ApiTags('Schools')
-@Public()
 @Controller('schools')
+@UseGuards(RolesGuard)
 export class SchoolsController {
   constructor(private readonly schoolsService: SchoolsService) {}
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Post()
   @ApiOperation({ summary: 'Create a school' })
   @ApiBody({ type: CreateSchoolDto })
@@ -27,6 +32,7 @@ export class SchoolsController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Delete()
   @ApiOperation({ summary: 'Delete all schools' })
   @ApiResponse({ status: 200, description: 'All schools deleted.' })
@@ -35,6 +41,7 @@ export class SchoolsController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Post('batch')
   @ApiOperation({ summary: 'Create multiple schools' })
   @ApiBody({ type: [CreateSchoolDto] })
@@ -62,6 +69,7 @@ export class SchoolsController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a school' })
   @ApiParam({ name: 'id', type: Number, description: 'School id' })
@@ -72,6 +80,7 @@ export class SchoolsController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a school' })
   @ApiParam({ name: 'id', type: Number, description: 'School id' })

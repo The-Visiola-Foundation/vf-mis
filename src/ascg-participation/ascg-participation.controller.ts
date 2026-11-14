@@ -1,18 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Public } from 'src/auth/decorators/public.decorator';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { UserRole } from 'src/common/user-role.enum';
 import { AscgParticipationService } from './ascg-participation.service';
 import { CreateAscgParticipationDto } from './dto/create-ascg-participation.dto';
 import { UpdateAscgParticipationDto } from './dto/update-ascg-participation.dto';
 
+const STAFF = [UserRole.ADMIN, UserRole.KEY_STAFF, UserRole.PROGRAMME_STAFF];
+
 @ApiTags('ASCG Participation')
-@Public()
 @Controller('ascg-participation')
+@UseGuards(RolesGuard)
 export class AscgParticipationController {
   constructor(private readonly ascgParticipationService: AscgParticipationService) {}
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Post()
   @ApiOperation({ summary: 'Create ASCG participation record' })
   @ApiBody({ type: CreateAscgParticipationDto })
@@ -37,6 +42,7 @@ export class AscgParticipationController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Patch(':id')
   @ApiOperation({ summary: 'Update an ASCG participation record' })
   @ApiParam({ name: 'id', type: Number, description: 'Participation record id' })
@@ -47,6 +53,7 @@ export class AscgParticipationController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete an ASCG participation record' })
   @ApiParam({ name: 'id', type: Number, description: 'Participation record id' })

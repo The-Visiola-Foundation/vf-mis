@@ -1,18 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Public } from 'src/auth/decorators/public.decorator';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { UserRole } from 'src/common/user-role.enum';
 import { AscgProfileService } from './ascg-profile.service';
 import { CreateAscgProfileDto } from './dto/create-ascg-profile.dto';
 import { UpdateAscgProfileDto } from './dto/update-ascg-profile.dto';
 
+const STAFF = [UserRole.ADMIN, UserRole.KEY_STAFF, UserRole.PROGRAMME_STAFF];
+
 @ApiTags('ASCG Profile')
-@Public()
 @Controller('ascg-profile')
+@UseGuards(RolesGuard)
 export class AscgProfileController {
   constructor(private readonly ascgProfileService: AscgProfileService) {}
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Post()
   @ApiOperation({ summary: 'Create an ASCG profile' })
   @ApiBody({ type: CreateAscgProfileDto })
@@ -37,6 +42,7 @@ export class AscgProfileController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Patch(':id')
   @ApiOperation({ summary: 'Update an ASCG profile' })
   @ApiParam({ name: 'id', type: String, description: 'Profile id' })
@@ -47,6 +53,7 @@ export class AscgProfileController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete an ASCG profile' })
   @ApiParam({ name: 'id', type: String, description: 'Profile id' })

@@ -1,18 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Public } from 'src/auth/decorators/public.decorator';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { UserRole } from 'src/common/user-role.enum';
 import { ProgramsService } from './programs.service';
 import { CreateProgramDto } from './dto/create-program.dto';
 import { UpdateProgramDto } from './dto/update-program.dto';
 
+const STAFF = [UserRole.ADMIN, UserRole.KEY_STAFF, UserRole.PROGRAMME_STAFF];
+
 @ApiTags('Programs')
-@Public()
 @Controller('programs')
+@UseGuards(RolesGuard)
 export class ProgramsController {
   constructor(private readonly programsService: ProgramsService) {}
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Post()
   @ApiOperation({ summary: 'Create a program' })
   @ApiBody({ type: CreateProgramDto })
@@ -37,6 +42,7 @@ export class ProgramsController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a program' })
   @ApiParam({ name: 'id', type: String, description: 'Program id' })
@@ -47,6 +53,7 @@ export class ProgramsController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a program' })
   @ApiParam({ name: 'id', type: String, description: 'Program id' })

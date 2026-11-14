@@ -17,6 +17,7 @@ import { CbcParticipation } from 'src/cbc-participation/entities/cbc-participati
 import { ScParticipation } from 'src/sc-participation/entities/sc-participation.entity';
 import { AscgProfile } from 'src/ascg-profile/entities/ascg-profile.entity';
 import { CbcProfile } from 'src/cbc-profile/entities/cbc-profile.entity';
+import { Program } from 'src/common/enum';
 
 // ---------------------------------------------------------------------------
 // Helpers / config
@@ -182,13 +183,21 @@ export class StudentsService {
     input: StudentInput,
     yearJoined: number,
   ) {
-    const extracted = config.extract(input);
-    const year = this.toValidYear(extracted.year ?? yearJoined, 'year');
+    const normalizedProgramId = (input.programId ?? input.program ?? '').toString().toLowerCase();
+    const programType = normalizedProgramId === 'outreach' ? Program.OUTREACH : Program.ASCG;
+    const extracted: Record<string, any> = {
+      ...config.extract(input),
+      ...(config.participation === AscgParticipation ? { type: programType } : {}),
+    };
+    const year = this.toValidYear(extracted['year'] ?? yearJoined, 'year');
 
     const where: Record<string, any> = { studentId, year };
+    if (config.participation === AscgParticipation) {
+      where.type = programType;
+    }
     for (const [key, value] of Object.entries(extracted)) {
       if (value == null) continue;
-      if (['track', 'school', 'studentId', 'year'].includes(key)) continue;
+      if (['track', 'school', 'studentId', 'year', 'type'].includes(key)) continue;
       where[key] = value;
     }
 
@@ -215,6 +224,7 @@ export class StudentsService {
         ...extracted,
         studentId,
         year,
+        ...(config.participation === AscgParticipation ? { type: programType } : {}),
       }),
     );
 
@@ -322,11 +332,20 @@ export class StudentsService {
       age: calculateAge(student.dateOfBirth),
       email: student.email,
       phone: student.phone,
+      country: student.country,
       school: student.cbcProfile?.school || student.ascgProfile?.school?.school || null,
     };
   }
 
-  async findAll(name?: string, firstName?: string, lastName?: string) {
+  async findAll(
+    name?: string,
+    page = 1,
+    limit = 20,
+  ) {
+    const safePage = Math.max(1, Number(page) || 1);
+    const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
+    const skip = (safePage - 1) * safeLimit;
+
     const qb = this.studentRepository
       .createQueryBuilder('student')
       .leftJoinAndSelect('student.ascgProfile', 'ascgProfile')
@@ -337,8 +356,7 @@ export class StudentsService {
       .leftJoinAndSelect('student.scParticipation', 'scParticipation');
 
     const trimmedName = name?.trim();
-    const trimmedFirstName = firstName?.trim();
-    const trimmedLastName = lastName?.trim();
+  
 
     if (trimmedName) {
       const parts = trimmedName.toLowerCase().split(/\s+/).filter(Boolean);
@@ -361,20 +379,18 @@ export class StudentsService {
       }
     }
 
-    if (trimmedFirstName) {
-      qb.andWhere('LOWER(student.firstName) LIKE :firstName', {
-        firstName: `%${trimmedFirstName.toLowerCase()}%`,
-      });
-    }
+    const [students, total] = await qb
+      .skip(skip)
+      .take(safeLimit)
+      .getManyAndCount();
 
-    if (trimmedLastName) {
-      qb.andWhere('LOWER(student.lastName) LIKE :lastName', {
-        lastName: `%${trimmedLastName.toLowerCase()}%`,
-      });
-    }
-
-    const [students, total] = await qb.getManyAndCount();
-    return [students.map((student) => this.toSearchResult(student)), total];
+    return {
+      data: students.map((student) => this.toSearchResult(student)),
+      total,
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit) || 1,
+    };
   }
 
   async findOne(id: string) {

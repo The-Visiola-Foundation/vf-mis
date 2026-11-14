@@ -158,8 +158,6 @@ export class AuthService {
             throw new UnauthorizedException('Invalid or expired refresh token');
         }
 
-        console.log(user)
-
         const isRefreshTokenValid = await argon2.verify(
             user.refreshTokenHash,
             dto.refreshToken
@@ -169,7 +167,7 @@ export class AuthService {
             throw new UnauthorizedException('Invalid or expired refresh token')
         }
 
-        const newPayload: JwtPayload = { sub: user.id, email: user.email };
+        const newPayload: JwtPayload = { sub: user.id, email: user.email, role: user.role ?? undefined };
         const { accessToken, refreshToken } = await this.issueTokens(newPayload);
 
         const refreshTokenHash = await argon2.hash(refreshToken)

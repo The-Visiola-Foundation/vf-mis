@@ -1,7 +1,8 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
 import { AcademicTerm } from '../../common/enum';
 
 @Entity()
+@Unique(['year', 'term'])
 export class Performance {
   @PrimaryGeneratedColumn('increment', { type: 'integer' })
   id!: number;

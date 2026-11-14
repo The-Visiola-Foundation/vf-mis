@@ -21,7 +21,7 @@ export class AccessTokenGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (isPublic || ['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+    if (isPublic) {
       return true;
     }
 

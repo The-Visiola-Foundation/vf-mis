@@ -12,6 +12,9 @@ export class AscgProfile {
     studentId?: string;
 
     @Column({ type: 'varchar', nullable: true })
+    examCode?: string;
+
+    @Column({ type: 'varchar', nullable: true })
     schoolId?: string;
 
     @ManyToOne(() => School, { nullable: true })
@@ -49,7 +52,7 @@ export class AscgProfile {
     numberOfSisters?: string;
 
     @Column({ type: 'varchar', nullable: true })
-    posistionInFamily?: string;
+    positionInFamily?: string;
 
     @Column({ type: 'varchar', nullable: true })
     specialization?: string;

@@ -1,18 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Public } from 'src/auth/decorators/public.decorator';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { UserRole } from 'src/common/user-role.enum';
 import { CbcProfileService } from './cbc-profile.service';
 import { CreateCbcProfileDto } from './dto/create-cbc-profile.dto';
 import { UpdateCbcProfileDto } from './dto/update-cbc-profile.dto';
 
+const STAFF = [UserRole.ADMIN, UserRole.KEY_STAFF, UserRole.PROGRAMME_STAFF];
+
 @ApiTags('CBC Profile')
-@Public()
 @Controller('cbc-profile')
+@UseGuards(RolesGuard)
 export class CbcProfileController {
   constructor(private readonly cbcProfileService: CbcProfileService) {}
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Post()
   @ApiOperation({ summary: 'Create a CBC profile' })
   @ApiBody({ type: CreateCbcProfileDto })
@@ -37,6 +42,7 @@ export class CbcProfileController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a CBC profile' })
   @ApiParam({ name: 'id', type: String, description: 'Profile id' })
@@ -47,6 +53,7 @@ export class CbcProfileController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a CBC profile' })
   @ApiParam({ name: 'id', type: String, description: 'Profile id' })

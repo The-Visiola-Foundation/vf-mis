@@ -11,6 +11,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { AccessTokenGuard } from './auth/guards/access-token.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
 import { CbcParticipationModule } from './cbc-participation/cbc-participation.module';
 import { CbcProfileModule } from './cbc-profile/cbc-profile.module';
 import { ProgramsModule } from './programs/programs.module';
@@ -60,6 +61,10 @@ import { TracksModule } from './tracks/tracks.module';
     {
       provide: APP_GUARD,
       useClass: AccessTokenGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

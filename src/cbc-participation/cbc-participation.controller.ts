@@ -1,18 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Public } from 'src/auth/decorators/public.decorator';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { UserRole } from 'src/common/user-role.enum';
 import { CbcParticipationService } from './cbc-participation.service';
 import { CreateCbcParticipationDto } from './dto/create-cbc-participation.dto';
 import { UpdateCbcParticipationDto } from './dto/update-cbc-participation.dto';
 
+const STAFF = [UserRole.ADMIN, UserRole.KEY_STAFF, UserRole.PROGRAMME_STAFF];
+
 @ApiTags('CBC Participation')
-@Public()
 @Controller('cbc-participation')
+@UseGuards(RolesGuard)
 export class CbcParticipationController {
   constructor(private readonly cbcParticipationService: CbcParticipationService) {}
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Post()
   @ApiOperation({ summary: 'Create CBC participation record' })
   @ApiBody({ type: CreateCbcParticipationDto })
@@ -37,6 +42,7 @@ export class CbcParticipationController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a CBC participation record' })
   @ApiParam({ name: 'id', type: Number, description: 'Participation record id' })
@@ -47,6 +53,7 @@ export class CbcParticipationController {
   }
 
   @WriteProtected()
+  @Roles(...STAFF)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a CBC participation record' })
   @ApiParam({ name: 'id', type: Number, description: 'Participation record id' })

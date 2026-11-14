@@ -4,6 +4,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { UserRole } from 'src/common/user-role.enum';
 
 export type SafeUser = Omit<User, 'passwordHash' | 'refreshTokenHash' | 'passwordResetTokenHash' | 'passwordResetTokenExpiresAt' | 'createdAt' | 'updatedAt'>;
 
@@ -32,8 +33,10 @@ export class UsersService {
   }
 
   async createUser(data: CreateUserDto): Promise<User> {
-    const user = this.userRepo.create(data);
-    console.log(user);
+    const user = this.userRepo.create({
+      ...data,
+      role: data.role ?? UserRole.PROGRAMME_STAFF,
+    });
     return this.userRepo.save(user);
   }
 
@@ -67,11 +70,31 @@ export class UsersService {
     return user
   }
 
+  async getAllUsers() {
+    const users = await this.userRepo.find();
+    return users.map(user => this.toSafeUser(user));
+  }
+
+  async updateUser(id: string, data: UpdateUserDto): Promise<User | null> {
+    const user = await this.userRepo.findOne({ where: { id } });
+    if (!user) {
+      return null;
+    }
+    Object.assign(user, data);
+    return this.userRepo.save(user);
+  }
+
+  async deleteUser(id: string) {
+    await this.userRepo.delete(id);
+    return { success: true }
+  }
+
   toSafeUser(user: User): SafeUser {
     return {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
       microsoftId: user.microsoftId,
       avatarUrl: user.avatarUrl,
     }

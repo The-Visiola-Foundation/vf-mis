@@ -3,4 +3,5 @@ export enum UserRole {
   KEY_STAFF = 'key_staff',
   PROGRAMME_STAFF = 'programme_staff',
   BOARD = 'board',
+  OWNER = 'owner',
 }

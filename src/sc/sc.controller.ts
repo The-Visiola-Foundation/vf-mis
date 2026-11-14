@@ -20,7 +20,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Public } from 'src/auth/decorators/public.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -40,7 +39,6 @@ const STAFF_AND_BOARD = [
 ];
 
 @ApiTags('SC')
-@Public()
 @Controller('sc')
 @UseGuards(RolesGuard)
 export class ScController {

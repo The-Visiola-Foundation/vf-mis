@@ -7,6 +7,7 @@ import { School } from 'src/schools/entities/school.entity';
 import { AscgParticipation } from 'src/ascg-participation/entities/ascg-participation.entity';
 import { CbcParticipation } from 'src/cbc-participation/entities/cbc-participation.entity';
 import { ScParticipation } from 'src/sc-participation/entities/sc-participation.entity';
+import { AscgProfile } from 'src/ascg-profile/entities/ascg-profile.entity';
 
 @Module({
   imports:[
@@ -15,7 +16,8 @@ import { ScParticipation } from 'src/sc-participation/entities/sc-participation.
       School,
       AscgParticipation,
       CbcParticipation,
-      ScParticipation
+      ScParticipation,
+      AscgProfile,
     ])
   ],
   controllers: [StatsController],
