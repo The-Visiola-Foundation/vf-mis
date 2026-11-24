@@ -9,8 +9,21 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 // dns.setDefaultResultOrder('ipv4first');
 
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {cors: true});
+  const app = await NestFactory.create(AppModule);
+
+  const allowedOrigins = process.env.CORS_ORIGINS
+    ?.split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean) ?? [];
+
+  app.enableCors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
 
   const config = new DocumentBuilder()
     .setTitle('VF MIS API')
@@ -28,10 +41,14 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({
     forbidNonWhitelisted: false,
     whitelist: true,
-    transform: true
-  }))
+    transform: true,
+  }));
+
   app.useGlobalInterceptors(new TransformInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
+
   await app.listen(process.env.PORT ?? 3000);
 }
+
 bootstrap();
+
