@@ -8,6 +8,8 @@ import { AscgParticipation } from 'src/ascg-participation/entities/ascg-particip
 import { CbcParticipation } from 'src/cbc-participation/entities/cbc-participation.entity';
 import { ScParticipation } from 'src/sc-participation/entities/sc-participation.entity';
 import { AscgProfile } from 'src/ascg-profile/entities/ascg-profile.entity';
+import { Academics } from 'src/academics/entities/academics.entity';
+import { Track } from 'src/tracks/entities/track.entity';
 
 @Module({
   imports:[
@@ -18,6 +20,8 @@ import { AscgProfile } from 'src/ascg-profile/entities/ascg-profile.entity';
       CbcParticipation,
       ScParticipation,
       AscgProfile,
+      Academics,
+      Track
     ])
   ],
   controllers: [StatsController],

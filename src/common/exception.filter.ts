@@ -15,6 +15,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
+    console.log(exception);
+
     const isDbConnectionError = (err: unknown): boolean => {
       if (!err || typeof err !== 'object') return false;
 

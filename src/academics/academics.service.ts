@@ -17,6 +17,8 @@ import { UpdateGpaDto } from './dto/update-gpa.dto';
 import { UpdateGradeDto } from './dto/update-grade.dto';
 import { UpdatePerformanceDto } from './dto/update-performance.dto';
 import { AscgParticipation } from 'src/ascg-participation/entities/ascg-participation.entity';
+import { School } from 'src/schools/entities/school.entity';
+import { Program } from 'src/common/enum';
 
 @Injectable()
 export class AcademicsService {
@@ -74,8 +76,13 @@ export class AcademicsService {
   }
 
 
+  async getSummary() {
+
+  }
+
 
   async findByYear(year: number) {
+
 
     // Get ASCG participation statistics for the selected year
     const ascgParticipation = await this.ascgParticipationRepository
@@ -181,6 +188,29 @@ export class AcademicsService {
       returningParticipation,
     };
 
+
+    const schoolQuery = this.ascgParticipationRepository
+      .createQueryBuilder('participation')
+      .innerJoin(School, 'school', 'school.id = participation.schoolId')
+      .select('school.school', 'school')
+      .addSelect('school.category', 'category')
+      .addSelect('school.id', 'schoolId')
+      .addSelect(
+        'COUNT(DISTINCT participation.studentId)',
+        'studentCount',
+      )
+      .where('participation.type = :type', { type: Program.ASCG })
+      .groupBy('school.id')
+      .addGroupBy('school.school')
+      .orderBy('school.school', 'ASC');
+
+    if (year !== 0) {
+      schoolQuery.andWhere('participation.year = :year', { year });
+    }
+
+    const schoolStats = await schoolQuery.getRawMany();
+
+
     return {
       year,
       summary,
@@ -193,6 +223,7 @@ export class AcademicsService {
       gpaTrend,
       movementBySubject,
       performanceByTerm,
+      schoolStats
     };
   }
 

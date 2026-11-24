@@ -8,6 +8,9 @@ import { School } from 'src/schools/entities/school.entity';
 import { Student } from 'src/students/entities/student.entity';
 import { Repository, In } from 'typeorm';
 import { AscgProfile } from 'src/ascg-profile/entities/ascg-profile.entity';
+import { Academics } from 'src/academics/entities/academics.entity';
+import { Track } from 'src/tracks/entities/track.entity';
+import { camelToWords } from 'src/common/utils/paired-t-test';
 
 @Injectable()
 export class StatsService {
@@ -17,7 +20,9 @@ export class StatsService {
     @InjectRepository(AscgParticipation) private readonly ascgParticipationRepo: Repository<AscgParticipation>,
     @InjectRepository(ScParticipation) private readonly scParticipationRepo: Repository<ScParticipation>,
     @InjectRepository(CbcParticipation) private readonly cbcParticipationRepo: Repository<CbcParticipation>,
-    @InjectRepository(AscgProfile) private readonly ascgProfileRepo: Repository<AscgProfile>
+    @InjectRepository(AscgProfile) private readonly ascgProfileRepo: Repository<AscgProfile>,
+    @InjectRepository(Academics) private readonly academicRepo: Repository<Academics>,
+    @InjectRepository(Track) private readonly trackRepo: Repository<Track>
   ) { }
 
   async getOverview() {
@@ -51,7 +56,7 @@ export class StatsService {
           const raw = await qb.getRawOne();
 
           return {
-            field,
+            field: camelToWords(field),
             emptyFields: Number(raw?.emptyFields ?? 0),
             filledFields: Number(raw?.filledFields ?? 0),
           };
@@ -89,9 +94,6 @@ export class StatsService {
     };
   }
 
-  /**
-   * Combined reach data: yearly breakdown + per-program cards.
-   */
   async getReach(year?: number | string) {
     try {
       const [yearly, programs] = await Promise.all([
@@ -106,10 +108,6 @@ export class StatsService {
     }
   }
 
-  /**
-   * For every year: unique students in that year and
-   * returning students (students whose yearJoined is earlier than the participation year).
-   */
   async getYearlyReach(year?: number | string) {
     const hasYear = year !== undefined && year !== null && year !== '' && !Number.isNaN(Number(year));
     const selectedYear = hasYear ? Number(year) : undefined;
@@ -214,11 +212,6 @@ export class StatsService {
     };
   }
 
-
-  /**
-   * Per-program stats: unique students, total participations,
-   * returning participations (total - unique) and the first year on record.
-   */
   async getProgramStats(year?: number | string) {
     const hasYear = year !== undefined && year !== null && year !== '' && !Number.isNaN(Number(year));
     const selectedYear = hasYear ? Number(year) : undefined;
@@ -238,29 +231,49 @@ export class StatsService {
     ];
   }
 
-
   async getBoardStats(year?: number | string) {
     const hasYear = year !== undefined && year !== null && year !== '' && !Number.isNaN(Number(year));
     const selectedYear = hasYear ? Number(year) : undefined;
 
-    const [ascg, outreach, cbc, sc] = await Promise.all([
+    const [ascg, cbc, sc] = await Promise.all([
       this.buildProgramStats(this.ascgParticipationRepo, Program.ASCG, undefined, selectedYear),
-      this.buildProgramStats(this.ascgParticipationRepo, Program.OUTREACH, undefined, selectedYear),
+      // this.buildProgramStats(this.ascgParticipationRepo, Program.OUTREACH, undefined, selectedYear),
       this.buildProgramStats(this.cbcParticipationRepo, undefined, undefined, selectedYear),
       this.buildProgramStats(this.scParticipationRepo, undefined, undefined, selectedYear),
     ]);
 
-    const studentTotal = await this.studentRepo.count();
-    const consentTotal = await this.studentRepo.count({ where: { consent: true } });
+
+    const studentCountByYear = await this.studentRepo
+      .createQueryBuilder('student')
+      .select('student.yearJoined', 'year')
+      .addSelect('COUNT(student.id)', 'count')
+      .groupBy('student.yearJoined')
+      .orderBy('student.yearJoined', 'ASC')
+      .getRawMany();
+
+
+
+
+    const studentTotal = await this.ascgProfileRepo.count();
+    const consentTotal = await this.ascgProfileRepo.count({ where: { parentalConsent: true } });
 
     const consentRate = studentTotal > 0 ? (consentTotal / studentTotal) * 100 : 0;
+    const schoolsCount = await this.schoolRepo.count();
+    const trackCount = await this.trackRepo.count();
+    const academics = await this.academicRepo.find();
 
     return {
-      ASCG: { program: 'ASCG', description: 'After-school STEM Clubs for Girls', ...ascg },
-      OUTREACH: { program: 'OUTREACH', description: 'Outreach programmes', ...outreach },
-      CBC: { program: 'CBC', description: 'Coding Bootcamps for Women', ...cbc },
+      ASCG: {
+        program: 'ASCG', description: 'After-school STEM Clubs for Girls',
+        schools: schoolsCount,
+        academics,
+        ...ascg
+      },
+      // OUTREACH: { program: 'OUTREACH', description: 'Outreach programmes', ...outreach },
+      CBC: { program: 'CBC', description: 'Coding Bootcamps for Women', trackCount, ...cbc },
       SC: { program: 'SC', description: 'STEM Camps', ...sc },
       consentRate: consentRate.toFixed(2) + '%',
+      studentCountByYear
     };
   }
 
@@ -332,8 +345,6 @@ export class StatsService {
 
     return results;
   }
-
-
 
   async getUnclassifiedStudents() {
     try {
@@ -415,8 +426,6 @@ export class StatsService {
       console.error('Error fetching unclassified students:', error);
     }
   }
-
-
 
   private async buildProgramStats(
     repo: Repository<any>,

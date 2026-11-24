@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { WriteProtected } from 'src/auth/decorators/write-protected.decorator';
@@ -7,9 +7,11 @@ import { UserRole } from 'src/common/user-role.enum';
 import { CbcParticipationService } from './cbc-participation.service';
 import { CreateCbcParticipationDto } from './dto/create-cbc-participation.dto';
 import { UpdateCbcParticipationDto } from './dto/update-cbc-participation.dto';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 const STAFF = [UserRole.ADMIN, UserRole.KEY_STAFF, UserRole.PROGRAMME_STAFF];
 
+@Public()
 @ApiTags('CBC Participation')
 @Controller('cbc-participation')
 @UseGuards(RolesGuard)
@@ -29,8 +31,8 @@ export class CbcParticipationController {
   @Get()
   @ApiOperation({ summary: 'List all CBC participation records' })
   @ApiResponse({ status: 200, description: 'Participation records returned.' })
-  findAll() {
-    return this.cbcParticipationService.findAll();
+  findAll(@Query('year') year?: number) {
+    return this.cbcParticipationService.findAll(year);
   }
 
   @Get(':id')

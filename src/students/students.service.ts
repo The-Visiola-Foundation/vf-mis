@@ -18,6 +18,8 @@ import { ScParticipation } from 'src/sc-participation/entities/sc-participation.
 import { AscgProfile } from 'src/ascg-profile/entities/ascg-profile.entity';
 import { CbcProfile } from 'src/cbc-profile/entities/cbc-profile.entity';
 import { Program } from 'src/common/enum';
+import { School } from 'src/schools/entities/school.entity';
+import { Track } from 'src/tracks/entities/track.entity';
 
 // ---------------------------------------------------------------------------
 // Helpers / config
@@ -97,7 +99,7 @@ export class StudentsService {
   constructor(
     @InjectRepository(Student) private readonly studentRepository: Repository<Student>,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   private toValidYear(value: unknown, fieldName: string): number {
     const parsed = Number(value);
@@ -329,6 +331,7 @@ export class StudentsService {
       firstName: student.firstName,
       lastName: student.lastName,
       dateOfBirth: student.dateOfBirth,
+      yearJoined: student.yearJoined,
       age: calculateAge(student.dateOfBirth),
       email: student.email,
       phone: student.phone,
@@ -356,7 +359,7 @@ export class StudentsService {
       .leftJoinAndSelect('student.scParticipation', 'scParticipation');
 
     const trimmedName = name?.trim();
-  
+
 
     if (trimmedName) {
       const parts = trimmedName.toLowerCase().split(/\s+/).filter(Boolean);
@@ -365,7 +368,7 @@ export class StudentsService {
         // Match "first last" in either order.
         qb.andWhere(
           '((LOWER(student.firstName) LIKE :firstToken AND LOWER(student.lastName) LIKE :lastToken) OR ' +
-            '(LOWER(student.firstName) LIKE :lastToken AND LOWER(student.lastName) LIKE :firstToken))',
+          '(LOWER(student.firstName) LIKE :lastToken AND LOWER(student.lastName) LIKE :firstToken))',
           {
             firstToken: `%${parts[0]}%`,
             lastToken: `%${parts[parts.length - 1]}%`,
@@ -379,31 +382,65 @@ export class StudentsService {
       }
     }
 
-    const [students, total] = await qb
+    const [students, totalCount] = await qb
       .skip(skip)
       .take(safeLimit)
       .getManyAndCount();
 
+    // const totalCount = await this.studentRepository.count()
+
+
     return {
       data: students.map((student) => this.toSearchResult(student)),
-      total,
+      totalCount,
       page: safePage,
       limit: safeLimit,
-      totalPages: Math.ceil(total / safeLimit) || 1,
+      totalPages: Math.ceil(totalCount / safeLimit) || 1,
     };
   }
 
   async findOne(id: string) {
-    return await this.studentRepository.findOneOrFail({
-      where: { id },
-      relations: {
-        ascgProfile: true,
-        cbcProfile: true,
-        ascgParticipation: true,
-        cbcParticipation: true,
-        scParticipation: true,
-      },
-    });
+    const student = await this.studentRepository
+      .createQueryBuilder('student')
+      .leftJoinAndSelect('student.ascgProfile', 'ascgProfile')
+      .leftJoinAndSelect('student.cbcProfile', 'cbcProfile')
+      .leftJoinAndSelect('student.ascgParticipation', 'ascgParticipation')
+      .leftJoinAndMapOne(
+        'ascgParticipation.school',
+        School,
+        'school',
+        'school.id = ascgParticipation.schoolId',
+      )
+      .leftJoinAndSelect('student.cbcParticipation', 'cbcParticipation')
+      .leftJoinAndMapOne(
+        'cbcParticipation.track',
+        Track,
+        'track',
+        '"track"."id" = CAST("cbcParticipation"."trackId" AS INTEGER)',
+      )
+      .leftJoinAndSelect('student.scParticipation', 'scParticipation')
+      .where('student.id = :id', { id })
+      .getOneOrFail();
+
+    student.ascgParticipation = student.ascgParticipation?.map((p) => {
+      const { school, ...rest } = p as typeof p & { school: School };
+
+      return {
+        ...rest,
+        schoolName: school?.school ?? null,
+      };
+    }) as typeof student.ascgParticipation;
+
+    student.cbcParticipation = student.cbcParticipation?.map((p) => {
+      const { track, ...rest } = p as typeof p & { track: Track };
+
+      return {
+        ...rest,
+        track: track?.track ?? null,
+      };
+    }) as typeof student.cbcParticipation;
+
+    return student;
   }
 
   // -------------------------------------------------------------------------

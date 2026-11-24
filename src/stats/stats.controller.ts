@@ -4,9 +4,11 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { UserRole } from 'src/common/user-role.enum';
 import { StatsService } from './stats.service';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 const STAFF_AND_BOARD = [UserRole.ADMIN, UserRole.KEY_STAFF, UserRole.PROGRAMME_STAFF, UserRole.BOARD];
 
+@Public()
 @ApiTags('Stats')
 @Controller('stats')
 @UseGuards(RolesGuard)

@@ -69,6 +69,9 @@ export class AscgProfile {
     @Column({ type: 'varchar', nullable: true })
     careerChoice2?: string;
 
+    @Column({type: 'boolean', nullable: true})
+    parentalConsent?: boolean | undefined
+
     @OneToOne(() => Student, (student) => student.ascgProfile, { nullable: false, onDelete: 'CASCADE' })
     @JoinColumn({ name: 'studentId' })
     student!: Student;

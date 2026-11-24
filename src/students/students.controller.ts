@@ -7,9 +7,11 @@ import { UserRole } from 'src/common/user-role.enum';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 const STAFF = [UserRole.ADMIN, UserRole.KEY_STAFF, UserRole.PROGRAMME_STAFF];
 
+@Public()
 @ApiTags('Students')
 @Controller('students')
 @UseGuards(RolesGuard)

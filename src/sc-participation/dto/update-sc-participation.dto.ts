@@ -1,4 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { CreateScParticipationDto } from './create-sc-participation.dto';
+import { CreateImpactMetricDto, CreateScParticipationDto } from './create-sc-participation.dto';
 
-export class UpdateScParticipationDto extends PartialType(CreateScParticipationDto) {}
+export class UpdateScParticipationDto extends PartialType(CreateScParticipationDto) { }
+
+export class UpdateImpactMetricDto extends PartialType(CreateImpactMetricDto) { }
