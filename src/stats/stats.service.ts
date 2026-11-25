@@ -235,11 +235,13 @@ export class StatsService {
     const hasYear = year !== undefined && year !== null && year !== '' && !Number.isNaN(Number(year));
     const selectedYear = hasYear ? Number(year) : undefined;
 
-    const [ascg, cbc, sc] = await Promise.all([
+    const [ascg, cbc, sc, countries, students] = await Promise.all([
       this.buildProgramStats(this.ascgParticipationRepo, Program.ASCG, undefined, selectedYear),
       // this.buildProgramStats(this.ascgParticipationRepo, Program.OUTREACH, undefined, selectedYear),
       this.buildProgramStats(this.cbcParticipationRepo, undefined, undefined, selectedYear),
       this.buildProgramStats(this.scParticipationRepo, undefined, undefined, selectedYear),
+      this.getCountryBreakdown(),
+      this.studentRepo.count()
     ]);
 
 
@@ -273,8 +275,19 @@ export class StatsService {
       CBC: { program: 'CBC', description: 'Coding Bootcamps for Women', trackCount, ...cbc },
       SC: { program: 'SC', description: 'STEM Camps', ...sc },
       consentRate: consentRate.toFixed(2) + '%',
-      studentCountByYear
+      studentCountByYear,
+      students,
+      countries
     };
+  }
+
+  async getCountryBreakdown() {
+    return await this.studentRepo
+      .createQueryBuilder('p')
+      .select('p.country', 'country')
+      .addSelect('COUNT(DISTINCT p.id)', 'studentCount')
+      .groupBy('p.country')
+      .getRawMany()
   }
 
   async diagnoseParticipationCounts() {
