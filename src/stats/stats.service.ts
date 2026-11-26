@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { AscgParticipation } from 'src/ascg-participation/entities/ascg-participation.entity';
 import { CbcParticipation } from 'src/cbc-participation/entities/cbc-participation.entity';
 import { ScParticipation } from 'src/sc-participation/entities/sc-participation.entity';
-import { Program } from 'src/common/enum';
+import { CampType, Program } from 'src/common/enum';
 import { School } from 'src/schools/entities/school.entity';
 import { Student } from 'src/students/entities/student.entity';
 import { Repository, In } from 'typeorm';
@@ -235,15 +235,15 @@ export class StatsService {
     const hasYear = year !== undefined && year !== null && year !== '' && !Number.isNaN(Number(year));
     const selectedYear = hasYear ? Number(year) : undefined;
 
-    const [ascg, cbc, sc, countries, students] = await Promise.all([
+    const [ascg, cbc, sc, countries, students, consent] = await Promise.all([
       this.buildProgramStats(this.ascgParticipationRepo, Program.ASCG, undefined, selectedYear),
       // this.buildProgramStats(this.ascgParticipationRepo, Program.OUTREACH, undefined, selectedYear),
       this.buildProgramStats(this.cbcParticipationRepo, undefined, undefined, selectedYear),
-      this.buildProgramStats(this.scParticipationRepo, undefined, undefined, selectedYear),
+      this.getScParticipationStats(),
       this.getCountryBreakdown(),
-      this.studentRepo.count()
+      this.studentRepo.count(),
+      this.getAscgStudentsConsentStats()
     ]);
-
 
     const studentCountByYear = await this.studentRepo
       .createQueryBuilder('student')
@@ -254,12 +254,6 @@ export class StatsService {
       .getRawMany();
 
 
-
-
-    const studentTotal = await this.ascgProfileRepo.count();
-    const consentTotal = await this.ascgProfileRepo.count({ where: { parentalConsent: true } });
-
-    const consentRate = studentTotal > 0 ? (consentTotal / studentTotal) * 100 : 0;
     const schoolsCount = await this.schoolRepo.count();
     const trackCount = await this.trackRepo.count();
     const academics = await this.academicRepo.find();
@@ -274,10 +268,88 @@ export class StatsService {
       // OUTREACH: { program: 'OUTREACH', description: 'Outreach programmes', ...outreach },
       CBC: { program: 'CBC', description: 'Coding Bootcamps for Women', trackCount, ...cbc },
       SC: { program: 'SC', description: 'STEM Camps', ...sc },
-      consentRate: consentRate.toFixed(2) + '%',
       studentCountByYear,
       students,
-      countries
+      countries,
+      consent
+    };
+  }
+
+async getScParticipationStats(): Promise<{
+  totalEnrolments: number;
+  uniqueStudents: number;
+  studentsWithRepeatEnrolments: number;
+  sscEnrolments: number;
+  dscEnrolments: number;
+}> {
+  const result = await this.scParticipationRepo
+    .createQueryBuilder('participation')
+    .select('COUNT(participation.id)', 'totalEnrolments')
+    .addSelect(
+      'COUNT(DISTINCT participation.studentId)',
+      'uniqueStudents',
+    )
+    .addSelect(
+      `COUNT(DISTINCT CASE WHEN participation."studentId" IN (
+        SELECT "studentId"
+        FROM sc_participations
+        GROUP BY "studentId"
+        HAVING COUNT(*) > 1
+      ) THEN participation."studentId" END)`,
+      'studentsWithRepeatEnrolments',
+    )
+    .addSelect(
+      'COUNT(CASE WHEN participation.type = :ssc THEN 1 END)',
+      'sscEnrolments',
+    )
+    .addSelect(
+      'COUNT(CASE WHEN participation.type = :dsc THEN 1 END)',
+      'dscEnrolments',
+    )
+    .setParameters({
+      ssc: CampType.SSC,
+      dsc: CampType.DSC,
+    })
+    .getRawOne();
+
+  return {
+    totalEnrolments: Number(result?.totalEnrolments ?? 0),
+    uniqueStudents: Number(result?.uniqueStudents ?? 0),
+    studentsWithRepeatEnrolments: Number(
+      result?.studentsWithRepeatEnrolments ?? 0,
+    ),
+    sscEnrolments: Number(result?.sscEnrolments ?? 0),
+    dscEnrolments: Number(result?.dscEnrolments ?? 0),
+  };
+}
+
+  async getAscgStudentsConsentStats(): Promise<{
+    totalStudents: number;
+    studentsWithConsent: number;
+    consentRate: number;
+  }> {
+    const result = await this.ascgParticipationRepo
+      .createQueryBuilder('participation')
+      .innerJoin('participation.student', 'student')
+      .leftJoin('student.ascgProfile', 'profile')
+      .select('COUNT(DISTINCT student.id)', 'totalStudents')
+      .addSelect(
+        'COUNT(DISTINCT CASE WHEN profile.parentalConsent = true THEN student.id END)',
+        'studentsWithConsent',
+      )
+      .where('participation.year >= :year', { year: 2026 })
+      // .andWhere('participation.type = :type', { type: Program.ASCG })
+      .getRawOne();
+
+    const totalStudents = Number(result?.totalStudents ?? 0);
+    const studentsWithConsent = Number(result?.studentsWithConsent ?? 0);
+
+    return {
+      totalStudents,
+      studentsWithConsent,
+      consentRate: totalStudents
+        ? Number(((studentsWithConsent / totalStudents) * 100).toFixed(2))
+        : 0,
     };
   }
 

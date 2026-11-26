@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from "class-transformer";
-import { IsNumber, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsNumber, IsOptional, IsString } from "class-validator";
 import { ProperNoun } from "src/common/decorators/proper.decorator";
 
 export class CreateAscgProfileDto {
@@ -102,4 +102,9 @@ export class CreateAscgProfileDto {
     @IsOptional()
     @IsNumber()
     year?: number;
+
+    @ApiPropertyOptional({description: 'Parental Consent'})
+    @IsOptional()
+    @IsBoolean()
+    parentalConsent?: boolean
 }

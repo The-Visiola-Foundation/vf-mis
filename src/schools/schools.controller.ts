@@ -8,6 +8,7 @@ import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 import { Category } from 'src/common/enum';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 export type SchoolsFilter = {
   category?: Category
@@ -15,6 +16,7 @@ export type SchoolsFilter = {
 
 const STAFF = [UserRole.ADMIN, UserRole.KEY_STAFF, UserRole.PROGRAMME_STAFF];
 
+@Public()
 @ApiTags('Schools')
 @Controller('schools')
 @UseGuards(RolesGuard)
